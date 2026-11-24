@@ -1,0 +1,10 @@
+{
+  "files.exclude": {
+    "**/build": true,
+    "**/install": true,
+    "**/log": true,
+    "**/.pixi": true,
+    "**/pixi.lock": true
+  },
+  "cmake.sourceDirectory": "/home/riccardo/ros2_ws/src/my_rover"
+}

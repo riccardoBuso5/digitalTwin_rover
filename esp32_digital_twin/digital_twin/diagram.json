@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "author": "Riccardo",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-esp32-devkit-v1", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-led", "id": "led_sx_avanti",   "top": -60, "left": 180, "attrs": { "color": "green",  "label": "SX AVANTI" } },
+    { "type": "wokwi-led", "id": "led_sx_indietro", "top": -10, "left": 180, "attrs": { "color": "yellow", "label": "SX INDIETRO" } },
+    { "type": "wokwi-led", "id": "led_dx_avanti",   "top": 50,  "left": 180, "attrs": { "color": "green",  "label": "DX AVANTI" } },
+    { "type": "wokwi-led", "id": "led_dx_indietro", "top": 100, "left": 180, "attrs": { "color": "yellow", "label": "DX INDIETRO" } },
+    { "type": "wokwi-led", "id": "led_ostacolo",    "top": 160, "left": 180, "attrs": { "color": "red",    "label": "OSTACOLO" } }
+  ],
+  "connections": [
+    [ "esp:TX0", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX0", "$serialMonitor:TX", "", [] ],
+
+    [ "esp:D19", "led_sx_avanti:A",   "green",  [ "h30" ] ],
+    [ "esp:GND.1", "led_sx_avanti:C", "black",  [ "h20" ] ],
+
+    [ "esp:D18", "led_sx_indietro:A", "yellow", [ "h35" ] ],
+    [ "esp:GND.1", "led_sx_indietro:C", "black", [ "h20" ] ],
+
+    [ "esp:D17", "led_dx_avanti:A",   "green",  [ "h40" ] ],
+    [ "esp:GND.1", "led_dx_avanti:C", "black",  [ "h20" ] ],
+
+    [ "esp:D16", "led_dx_indietro:A", "yellow", [ "h45" ] ],
+    [ "esp:GND.1", "led_dx_indietro:C", "black", [ "h20" ] ],
+
+    [ "esp:D2",  "led_ostacolo:A",    "red",    [ "h50" ] ],
+    [ "esp:GND.1", "led_ostacolo:C",  "black",  [ "h20" ] ]
+  ]
+}

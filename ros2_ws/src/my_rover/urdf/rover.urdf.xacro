@@ -1,0 +1,166 @@
+<?xml version="1.0"?>
+<!-- Definizione del robot chiamato "my_rover" con supporto alle macro Xacro (XML Macros) -->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="my_rover">
+
+  <!-- ================= PROPRIETÀ (COSTANTI PARAMETRICHE) ================= -->
+  <!-- Dimensioni e massa del telaio (in metri e chilogrammi) -->
+  <xacro:property name="chassis_len" value="0.35"/>  <!-- Lunghezza (asse X): 35 cm -->
+  <xacro:property name="chassis_wid" value="0.24"/>  <!-- Larghezza (asse Y): 24 cm -->
+  <xacro:property name="chassis_hgt" value="0.08"/>  <!-- Altezza (asse Z): 8 cm -->
+  <xacro:property name="chassis_mass" value="2.0"/>  <!-- Massa del telaio: 2 kg -->
+
+  <!-- Dimensioni, massa e posizione delle ruote -->
+  <xacro:property name="wheel_rad" value="0.045"/>   <!-- Raggio ruota: 4.5 cm -->
+  <xacro:property name="wheel_len" value="0.03"/>    <!-- Spessore ruota: 3 cm -->
+  <xacro:property name="wheel_mass" value="0.2"/>    <!-- Massa singola ruota: 200 g -->
+  <xacro:property name="wheel_x_off" value="0.11"/>  <!-- Distanza dal centro lungo X: 11 cm -->
+  <xacro:property name="wheel_y_off" value="0.14"/>  <!-- Distanza dal centro lungo Y: 14 cm -->
+
+  <!-- ================= TELAIO PRINCIPALE (BASE_LINK) ================= -->
+  <link name="base_link">
+    <!-- Aspetto grafico (ciò che si vede nella simulazione/RViz) -->
+    <visual>
+      <geometry><box size="${chassis_len} ${chassis_wid} ${chassis_hgt}"/></geometry>
+      <material name="blue"><color rgba="0.1 0.3 0.8 1.0"/></material> <!-- Colore blu -->
+    </visual>
+
+    <!-- Volume di collisione (usato dal motore fisico per gli urti) -->
+    <collision>
+      <geometry><box size="${chassis_len} ${chassis_wid} ${chassis_hgt}"/></geometry>
+    </collision>
+
+    <!-- Proprietà inerziali per la fisica (massa e tensore d'inerzia di un parallelepipedo) -->
+    <inertial>
+      <mass value="${chassis_mass}"/>
+      <inertia ixx="${(1/12)*chassis_mass*(chassis_wid*chassis_wid + chassis_hgt*chassis_hgt)}"
+               ixy="0" ixz="0"
+               iyy="${(1/12)*chassis_mass*(chassis_len*chassis_len + chassis_hgt*chassis_hgt)}"
+               iyz="0"
+               izz="${(1/12)*chassis_mass*(chassis_len*chassis_len + chassis_wid*chassis_wid)}"/>
+    </inertial>
+  </link>
+
+  <!-- ================= MACRO RIUTILIZZABILE PER LE RUOTE ================= -->
+  <!-- Crea automaticamente il link della ruota e il giunto che la collega al telaio -->
+  <!-- Parametri: prefix (nome), x_reflect (+1 avanti / -1 dietro), y_reflect (+1 sinistra / -1 destra) -->
+  <xacro:macro name="wheel" params="prefix x_reflect y_reflect">
+    
+    <!-- Corpo fisico della singola ruota -->
+    <link name="${prefix}_wheel">
+      <visual>
+        <geometry><cylinder radius="${wheel_rad}" length="${wheel_len}"/></geometry>
+        <material name="black"><color rgba="0.1 0.1 0.1 1.0"/></material> <!-- Colore nero -->
+      </visual>
+      <collision>
+        <geometry><cylinder radius="${wheel_rad}" length="${wheel_len}"/></geometry>
+      </collision>
+      <!-- Tensore d'inerzia di un cilindro pieno -->
+      <inertial>
+        <mass value="${wheel_mass}"/>
+        <inertia ixx="${(1/12)*wheel_mass*(3*wheel_rad*wheel_rad + wheel_len*wheel_len)}"
+                 ixy="0" ixz="0"
+                 iyy="${(1/12)*wheel_mass*(3*wheel_rad*wheel_rad + wheel_len*wheel_len)}"
+                 iyz="0"
+                 izz="${(1/2)*wheel_mass*(wheel_rad*wheel_rad)}"/>
+      </inertial>
+    </link>
+
+    <!-- Giunto rotante continuo (senza limiti di angolo) tra telaio e ruota -->
+    <joint name="${prefix}_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="${prefix}_wheel"/>
+      <!-- Posiziona la ruota ai lati del telaio e 3 cm più in basso (-0.03).
+           rpy="-1.5708 0 0" (-90° su X) ruota il cilindro in verticale affinché poggi sul battistrada -->
+      <origin xyz="${x_reflect * wheel_x_off} ${y_reflect * wheel_y_off} -0.03" rpy="-1.5708 0 0"/>
+      <!-- Asse di rotazione locale della ruota (dopo la rotazione rpy, Z punta lateralmente) -->
+      <axis xyz="0 0 1"/>
+    </joint>
+  </xacro:macro>
+
+  <!-- ================= ISTANZIAZIONE DELLE 4 RUOTE ================= -->
+  <!-- Chiama 4 volte la macro cambiando i segni per posizionarle ai 4 angoli -->
+  <xacro:wheel prefix="front_left"  x_reflect="1"  y_reflect="1"/>   <!-- Anteriore sinistra -->
+  <xacro:wheel prefix="front_right" x_reflect="1"  y_reflect="-1"/>  <!-- Anteriore destra -->
+  <xacro:wheel prefix="rear_left"   x_reflect="-1" y_reflect="1"/>   <!-- Posteriore sinistra -->
+  <xacro:wheel prefix="rear_right"  x_reflect="-1" y_reflect="-1"/>  <!-- Posteriore destra -->
+
+  <!-- ================= MACRO PER SENSORI DI PROSSIMITÀ ================= -->
+  <!-- Parametri: prefix (nome), x_pos (posizione lungo X), yaw (orientamento in radianti) -->
+  <xacro:macro name="proximity_sensor" params="prefix x_pos yaw">
+    <link name="${prefix}_link">
+      <!-- Piccolo cilindro rosso visibile sul paraurti -->
+      <visual>
+        <origin xyz="0 0 0" rpy="0 1.5708 0"/>
+        <geometry><cylinder radius="0.012" length="0.02"/></geometry>
+        <material name="red"><color rgba="0.9 0.1 0.1 1.0"/></material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 1.5708 0"/>
+        <geometry><cylinder radius="0.012" length="0.02"/></geometry>
+      </collision>
+      <inertial>
+        <mass value="0.02"/>
+        <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+      </inertial>
+    </link>
+
+    <!-- Giunto fisso che fissa il sensore al telaio -->
+    <joint name="${prefix}_joint" type="fixed">
+      <parent link="base_link"/>
+      <child link="${prefix}_link"/>
+      <origin xyz="${x_pos} 0 0.01" rpy="0 0 ${yaw}"/>
+    </joint>
+
+    <!-- Definizione del sensore di distanza (ray/lidar a cono stretto) in Gazebo -->
+    <gazebo reference="${prefix}_link">
+      <sensor name="${prefix}" type="gpu_lidar">
+        <always_on>true</always_on>
+        <visualize>true</visualize>          <!-- Mostra il raggio verde nella finestra 3D di Gazebo -->
+        <update_rate>20</update_rate>        <!-- Frequenza di aggiornamento: 20 Hz -->
+        <topic>/${prefix}/scan</topic>       <!-- Topic Gazebo su cui pubblica le distanze -->
+        <ray>
+          <scan>
+            <horizontal>
+              <samples>5</samples>           <!-- 5 raggi in un piccolo cono frontale di ~11 gradi -->
+              <resolution>1</resolution>
+              <min_angle>-0.1</min_angle>
+              <max_angle>0.1</max_angle>
+            </horizontal>
+          </scan>
+          <range>
+            <min>0.03</min>                  <!-- Distanza minima rilevabile: 3 cm -->
+            <max>2.00</max>                  <!-- Portata massima: 2 metri -->
+            <resolution>0.01</resolution>
+          </range>
+        </ray>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+
+  <!-- ================= ISTANZIAZIONE SENSORI ANTERIORE E POSTERIORE ================= -->
+  <!-- Posizionati esattamente alle estremità del telaio (chassis_len / 2 = 0.175 m) -->
+  <xacro:proximity_sensor prefix="front_sensor" x_pos="${chassis_len / 2}"  yaw="0.0"/>
+  <xacro:proximity_sensor prefix="rear_sensor"  x_pos="${-chassis_len / 2}" yaw="3.14159"/>
+
+  <!-- ================= PLUGIN DI SIMULAZIONE GAZEBO ================= -->
+  <gazebo>
+    <!-- Carica il sistema di guida differenziale (skid-steer a 4 ruote) di Gazebo Sim -->
+    <plugin filename="libgz-sim-diff-drive-system.so" name="gz::sim::systems::DiffDrive">
+      <!-- Associa i giunti di sinistra e di destra ai rispettivi lati -->
+      <left_joint>front_left_joint</left_joint>
+      <left_joint>rear_left_joint</left_joint>
+      <right_joint>front_right_joint</right_joint>
+      <right_joint>rear_right_joint</right_joint>
+
+      <!-- Parametri cinematici usati per convertire le velocità in rotazione ruote -->
+      <wheel_separation>${2 * wheel_y_off}</wheel_separation> <!-- Carreggiata totale: 0.28 m -->
+      <wheel_radius>${wheel_rad}</wheel_radius>              <!-- Raggio ruota: 0.045 m -->
+      <max_wheel_torque>20</max_wheel_torque>                <!-- Coppia massima applicabile (Nm) -->
+
+      <!-- Topic in ascolto: riceve i messaggi Twist inviati dal nodo C++ RoverController -->
+      <topic>/cmd_vel</topic>
+    </plugin>
+    
+  </gazebo>
+
+</robot>

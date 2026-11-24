@@ -1,0 +1,32 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "ROS2: Compila e Avvia Gazebo",
+      "type": "shell",
+      "command": "pixi run bash -c 'colcon build --packages-select my_rover --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && source install/setup.bash && ros2 launch my_rover sim.launch.py'",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "ROS2: Solo Compila",
+      "type": "shell",
+      "command": "pixi run bash -c 'colcon build --packages-select my_rover --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON'",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

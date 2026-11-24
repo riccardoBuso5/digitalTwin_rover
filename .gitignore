@@ -1,0 +1,19 @@
+# ROS 2 / Colcon build artifacts
+build/
+install/
+log/
+compile_commands.json
+
+# Pixi environment (pesa centinaia di MB, si ricrea con 'pixi install')
+.pixi/
+
+# PlatformIO / ESP-IDF build artifacts
+.pio/
+managed_components/
+sdkconfig
+sdkconfig.old
+
+# Python & System
+__pycache__/
+*.py[cod]
+.DS_Store
